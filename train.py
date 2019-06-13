@@ -2,16 +2,17 @@ import data_read
 import tensorflow as tf 
 import model
 
-# Parameters
+# Data
+num_examples = data_read.num_train_images
 
 # Parameters
 learning_rate = 0.00001
-epochs = 100
-batch_size = 128
+epochs = 30
+batch_size = 100
 
 # Number of samples to calculate validation and accuracy
 # Decrease this if you're running out of memory to calculate accuracy
-test_valid_size = 100
+test_valid_size = 500
 
 # Network Parameters
 dropout = 0.75  # Dropout, probability to keep units
@@ -54,45 +55,55 @@ keep_prob = tf.placeholder(tf.float32)
 # Model
 logits = model.autopilot(x, weights, biases, keep_prob)
 
+L2NormConst = 0.001
+
+train_vars = tf.trainable_variables()
+
 # Define loss and optimizer
-cost = tf.losses.mean_squared_error(labels=y, predictions = logits)
+#cost = tf.losses.mean_squared_error(labels=y, predictions = logits)
+cost = tf.reduce_mean(tf.square(tf.subtract(y,logits)))  + tf.add_n([tf.nn.l2_loss(v) for v in train_vars]) * L2NormConst
 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Accuracy
-accuracy = tf.metrics.mean_squared_error(labels = y, predictions = logits)
+#accuracy = tf.metrics.mean_squared_error(labels = y, predictions = logits)
 
 # Initializing the variables
 init = tf.global_variables_initializer()
 
-# Launch the graph
 
+# Launch the graph
 with tf.Session() as sess:
     sess.run(init)
 
     for epoch in range(epochs):
         batch = 0
-        X_train, y_train = shuffle(X_train, y_train)
-        for offset in range(0, num_examples, batch_size):
-            batch_x, batch_y = X_train[offset:offset+batch_size], y_train[offset:offset+batch_size]
+        #X_train, y_train = shuffle(X_train, y_train)
+        for i in range(int(num_examples/batch_size)):
+            batch_x, batch_y = data_read.LoadTrainBatch(batch_size)
             sess.run(optimizer, feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
 
             # Calculate batch loss and accuracy
             loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
-            valid_acc = sess.run(accuracy, feed_dict={
-                x: X_validation[:test_valid_size],
-                y: y_validation[:test_valid_size],
-                keep_prob: 1.})
-
+            X_validation, y_validation = data_read.LoadValBatch(test_valid_size)
+            valid_acc = sess.run(cost,feed_dict={x:X_validation, y: y_validation, keep_prob: 1.0}) 
+            '''
+            sess.run(accuracy, feed_dict={
+            x: X_validation[:test_valid_size],
+            y: y_validation[:test_valid_size],
+            keep_prob: 1.})
+            '''
             print('Epoch {:>2}, Batch {:>3} - Loss: {:>10.4f} Validation Accuracy: {:.6f}'.format(
                 epoch + 1,
                 batch + 1,
                 loss,
                 valid_acc))
             batch += 1
+    '''
     # Calculate Test Accuracy
     test_acc = sess.run(accuracy, feed_dict={
         x: X_test[:test_valid_size],
         y: y_test[:test_valid_size],
         keep_prob: 1.})
     print('Testing Accuracy: {}'.format(test_acc))
+    '''
