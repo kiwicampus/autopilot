@@ -1,44 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 
-# Parameters
-learning_rate = 0.00001
-epochs = 100
-batch_size = 128
-
-# Number of samples to calculate validation and accuracy
-# Decrease this if you're running out of memory to calculate accuracy
-test_valid_size = 100
-
-# Network Parameters
-dropout = 0.75  # Dropout, probability to keep units
-
-# Store layers weight & bias
-weights = {
-    'wc1': tf.Variable(tf.random_normal([5, 5, 3, 24])),
-    'wc2': tf.Variable(tf.random_normal([5, 5, 24, 36])),
-    'wc3': tf.Variable(tf.random_normal([5, 5, 36, 48])),
-    
-    'wc4': tf.Variable(tf.random_normal([3, 3, 48, 64])),
-    'wc5': tf.Variable(tf.random_normal([3, 3, 64, 64])),
-    
-    'wd1': tf.Variable(tf.random_normal([64*18, 100])),
-    'wd2': tf.Variable(tf.random_normal([100, 50])),
-    'wd3': tf.Variable(tf.random_normal([50, 10])),
-    'out': tf.Variable(tf.random_normal([10, 1]))}
-
-biases = {
-    'bc1': tf.Variable(tf.random_normal([24])),
-    'bc2': tf.Variable(tf.random_normal([36])),
-    'bc3': tf.Variable(tf.random_normal([48])),
-    'bc4': tf.Variable(tf.random_normal([64])),
-    'bc5': tf.Variable(tf.random_normal([64])),
-      
-    'bd1': tf.Variable(tf.random_normal([100])),
-    'bd2': tf.Variable(tf.random_normal([50])),
-    'bd3': tf.Variable(tf.random_normal([10])),
-    'out': tf.Variable(tf.random_normal([1]))}
-
 '''
 Implements a 2D convolutional layer
 
