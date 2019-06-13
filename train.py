@@ -12,36 +12,38 @@ batch_size = 100
 
 # Number of samples to calculate validation and accuracy
 # Decrease this if you're running out of memory to calculate accuracy
-test_valid_size = 500
+test_valid_size = 100
 
-# Network Parameters
+# Network Parameters - In case dropout layer are added to the network architecture
 dropout = 0.75  # Dropout, probability to keep units
 
 # Store layers weight & bias
 weights = {
-    'wc1': tf.Variable(tf.random_normal([5, 5, 3, 24])),
-    'wc2': tf.Variable(tf.random_normal([5, 5, 24, 36])),
-    'wc3': tf.Variable(tf.random_normal([5, 5, 36, 48])),
+    'wc1': tf.Variable(tf.truncated_normal([5, 5, 3, 24], stddev=0.1)),
+    'wc2': tf.Variable(tf.truncated_normal([5, 5, 24, 36], stddev=0.1)),
+    'wc3': tf.Variable(tf.truncated_normal([5, 5, 36, 48], stddev=0.1)),
     
-    'wc4': tf.Variable(tf.random_normal([3, 3, 48, 64])),
-    'wc5': tf.Variable(tf.random_normal([3, 3, 64, 64])),
+    'wc4': tf.Variable(tf.truncated_normal([3, 3, 48, 64], stddev=0.1)),
+    'wc5': tf.Variable(tf.truncated_normal([3, 3, 64, 64], stddev=0.1)),
     
-    'wd1': tf.Variable(tf.random_normal([64*18, 100])),
-    'wd2': tf.Variable(tf.random_normal([100, 50])),
-    'wd3': tf.Variable(tf.random_normal([50, 10])),
-    'out': tf.Variable(tf.random_normal([10, 1]))}
+    'wd1': tf.Variable(tf.truncated_normal([64*18, 100], stddev=0.1)),
+    'wd2': tf.Variable(tf.truncated_normal([100, 50], stddev=0.1)),
+    'wd3': tf.Variable(tf.truncated_normal([50, 10], stddev=0.1)),
+    'out': tf.Variable(tf.truncated_normal([10, 1], stddev=0.1))}
+
 
 biases = {
-    'bc1': tf.Variable(tf.random_normal([24])),
-    'bc2': tf.Variable(tf.random_normal([36])),
-    'bc3': tf.Variable(tf.random_normal([48])),
-    'bc4': tf.Variable(tf.random_normal([64])),
-    'bc5': tf.Variable(tf.random_normal([64])),
-      
-    'bd1': tf.Variable(tf.random_normal([100])),
-    'bd2': tf.Variable(tf.random_normal([50])),
-    'bd3': tf.Variable(tf.random_normal([10])),
-    'out': tf.Variable(tf.random_normal([1]))}
+        'bc1': tf.Variable(tf.random_normal([24])),
+        'bc2': tf.Variable(tf.random_normal([36])),
+        'bc3': tf.Variable(tf.random_normal([48])),
+        'bc4': tf.Variable(tf.random_normal([64])),
+        'bc5': tf.Variable(tf.random_normal([64])),
+        
+        'bd1': tf.Variable(tf.random_normal([100])),
+        'bd2': tf.Variable(tf.random_normal([50])),
+        'bd3': tf.Variable(tf.random_normal([10])),
+        'out': tf.Variable(tf.random_normal([1]))
+        }
 
 
 # Graph initializer
@@ -63,8 +65,8 @@ train_vars = tf.trainable_variables()
 #cost = tf.losses.mean_squared_error(labels=y, predictions = logits)
 cost = tf.reduce_mean(tf.square(tf.subtract(y,logits)))  + tf.add_n([tf.nn.l2_loss(v) for v in train_vars]) * L2NormConst
 
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
-
+#optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
+optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
 # Accuracy
 #accuracy = tf.metrics.mean_squared_error(labels = y, predictions = logits)
 

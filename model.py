@@ -48,5 +48,5 @@ def autopilot(x, weights, biases, dropout):
     fc3 = tf.nn.relu(fc3)
     
     # Fully connected layer - Output Layer - class prediction - 10 to 1
-    out = tf.add(tf.matmul(fc3, weights['out']), biases['out'])
+    out = tf.multiply(tf.atan(tf.add(tf.matmul(fc3, weights['out']), biases['out'])), 2)
     return out
