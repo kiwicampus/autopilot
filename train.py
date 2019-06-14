@@ -1,13 +1,17 @@
 import data_read
 import tensorflow as tf 
+from tensorflow.core.protobuf import saver_pb2
 import model
+import os 
+
+LOGDIR = './save'
 
 # Data
 num_examples = data_read.num_train_images
 
 # Parameters
 learning_rate = 0.00001
-epochs = 30
+epochs = 2
 batch_size = 100
 
 # Number of samples to calculate validation and accuracy
@@ -45,11 +49,13 @@ biases = {
         'out': tf.Variable(tf.random_normal([1]))
         }
 
+def addNameToTensor(someTensor, theName):
+    return tf.identity(someTensor, name=theName)
 
 # Graph initializer
 
 # tf Graph input
-x = tf.placeholder(tf.float32, [None, 66, 200, 3])
+x = tf.placeholder(tf.float32, [None, 66, 200, 3], name="myInput")
 y = tf.placeholder(tf.float32, [None, 1])
 
 keep_prob = tf.placeholder(tf.float32)
@@ -57,6 +63,7 @@ keep_prob = tf.placeholder(tf.float32)
 # Model
 logits = model.autopilot(x, weights, biases, keep_prob)
 
+addNameToTensor(logits, "myOutput")
 L2NormConst = 0.001
 
 train_vars = tf.trainable_variables()
@@ -73,11 +80,11 @@ optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
 # Initializing the variables
 init = tf.global_variables_initializer()
 
-
+terminate = False
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
-
+    saver = tf.train.Saver(write_version = saver_pb2.SaverDef.V1)
     for epoch in range(epochs):
         batch = 0
         #X_train, y_train = shuffle(X_train, y_train)
@@ -101,6 +108,24 @@ with tf.Session() as sess:
                 loss,
                 valid_acc))
             batch += 1
+            '''
+            if batch==50:
+                tf.saved_model.simple_save(sess,
+                "./model",
+                inputs={"myInput": x},
+                outputs={"myOutput": logits})
+                terminate = True
+                break
+            if terminate:
+            break
+            '''
+            if i % batch_size == 0:
+                if not os.path.exists(LOGDIR):
+                    os.makedirs(LOGDIR)
+                checkpoint_path = os.path.join(LOGDIR, "model.ckpt")
+                filename = saver.save(sess, checkpoint_path)
+        print("Model saved in file: %s" % filename)
+
     '''
     # Calculate Test Accuracy
     test_acc = sess.run(accuracy, feed_dict={
