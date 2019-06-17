@@ -1,4 +1,2 @@
 dataset
-pure_tensorflow/model
-pure_tensorflow/save    
 *.pyc

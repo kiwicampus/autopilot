@@ -58,7 +58,7 @@ smoothed_angle = 0
 
 i = 0
 while(cv2.waitKey(10) != ord('q')):
-    full_image = scipy.misc.imread("dataset/" + str(i) + ".jpg", mode="RGB")
+    full_image = scipy.misc.imread("../dataset/" + str(i) + ".jpg", mode="RGB")
     image = scipy.misc.imresize(full_image[-150:], [66, 200]) / 255.0
     degrees = logits.eval(feed_dict={x: [image], keep_prob: 1.0})[0][0] * 180.0 / scipy.pi
     call("clear")

@@ -96,41 +96,17 @@ with tf.Session() as sess:
             loss = sess.run(cost, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
             X_validation, y_validation = data_read.LoadValBatch(test_valid_size)
             valid_acc = sess.run(cost,feed_dict={x:X_validation, y: y_validation, keep_prob: 1.0}) 
-            '''
-            sess.run(accuracy, feed_dict={
-            x: X_validation[:test_valid_size],
-            y: y_validation[:test_valid_size],
-            keep_prob: 1.})
-            '''
+        
             print('Epoch {:>2}, Batch {:>3} - Loss: {:>10.4f} Validation Accuracy: {:.6f}'.format(
                 epoch + 1,
                 batch + 1,
                 loss,
                 valid_acc))
             batch += 1
-            '''
-            if batch==50:
-                tf.saved_model.simple_save(sess,
-                "./model",
-                inputs={"myInput": x},
-                outputs={"myOutput": logits})
-                terminate = True
-                break
-            if terminate:
-            break
-            '''
+            
             if i % batch_size == 0:
                 if not os.path.exists(LOGDIR):
                     os.makedirs(LOGDIR)
                 checkpoint_path = os.path.join(LOGDIR, "model.ckpt")
                 filename = saver.save(sess, checkpoint_path)
         print("Model saved in file: %s" % filename)
-
-    '''
-    # Calculate Test Accuracy
-    test_acc = sess.run(accuracy, feed_dict={
-        x: X_test[:test_valid_size],
-        y: y_test[:test_valid_size],
-        keep_prob: 1.})
-    print('Testing Accuracy: {}'.format(test_acc))
-    '''
