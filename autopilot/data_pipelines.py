@@ -34,3 +34,48 @@ def serving_input_fn(params):
             image=input_image,
         ),
     )
+
+def input_fn(data_dir, params):
+
+    csv_filepath = os.path.join(data_dir, CSV_FILENAME)
+    df = pd.read_csv(csv_filepath)
+    df = normalize_dataframe(df)
+
+    # There are whitespaces problems for column filename
+    # df["filepath"] = df["filename"].str.strip()
+    df["filepath"] = df["filename"].apply(lambda row: os.path.join(data_dir, row.strip()))
+
+    df = process_dataframe(df, params)
+
+    if params.only_center_camera:
+        df = df[df.camera == 1]
+
+
+    # Shuffle the dataset
+    df = df.sample(frac=1)
+
+    tensors = dict(
+        filepath=df.filepath.values,
+        steering=df.steering.values,
+        camera=df.camera.values,
+        original_steering=df.original_steering.values,
+    )
+
+    if "flipped" in df:
+        tensors["flipped"] = df.flipped.values.astype(np.int32)
+
+    ds = tf.data.Dataset.from_tensor_slices(tensors)
+
+    ds = ds.shuffle(buffer_size=params.buffer_size, reshuffle_each_iteration=True)
+
+    ds = ds.apply(tf.data.experimental.map_and_batch(
+        lambda row: process_data(row, params),
+        batch_size=params.batch_size,
+        num_parallel_calls=params.n_threads,
+        drop_remainder=True,
+    ))
+
+    # Please check dataset options
+    ds = ds.prefetch(tf.contrib.data.AUTOTUNE)
+
+    return ds
