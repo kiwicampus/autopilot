@@ -79,3 +79,49 @@ def input_fn(data_dir, params):
     ds = ds.prefetch(tf.contrib.data.AUTOTUNE)
 
     return ds
+
+def normalize_dataframe(df):
+
+    df_L = df.copy()
+    df_C = df.copy()
+    df_R = df.copy()
+
+    df_L["camera"] = 0
+    df_C["camera"] = 1
+    df_R["camera"] = 2
+
+    df_L["filename"] = df_L["left"]
+    df_C["filename"] = df_C["center"]
+    df_R["filename"] = df_R["right"]
+
+    df_L = df_L.drop(["left", "center", "right"], axis=1)
+    df_C = df_C.drop(["left", "center", "right"], axis=1)
+    df_R = df_R.drop(["left", "center", "right"], axis=1)
+
+    df = pd.concat([df_L, df_C, df_R])
+
+    return df
+
+
+def process_dataframe(df, params):
+
+    df = df.copy()
+    df_flipped = df.copy()
+
+    df["flipped"] = False
+    df_flipped["flipped"] = True
+
+    df = pd.concat([df, df_flipped])
+    df["original_steering"] = df.steering
+
+    cam0 = df.camera == 0
+    cam2 = df.camera == 2
+
+    df.loc[cam0, "steering"] = df[cam0].steering + params.angle_correction
+    df.loc[cam2, "steering"] = df[cam2].steering - params.angle_correction
+
+    # flip
+    flipped = df.flipped
+    df.loc[flipped, "steering"] = -df[flipped].steering
+
+    return df
