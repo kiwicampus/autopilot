@@ -125,3 +125,53 @@ def process_dataframe(df, params):
     df.loc[flipped, "steering"] = -df[flipped].steering
 
     return df
+
+def process_data(row, params):
+
+    # Read image
+    image = tf.read_file(row["filepath"])
+    image = tf.image.decode_and_crop_jpeg(
+        contents=image,
+        crop_window=get_crop_window(params),
+        channels=3
+    )
+
+    image = tf.image.resize_images(image, [params.resize_height, params.resize_width])
+
+    image = tf.cond(
+        row["flipped"] > 0,
+        lambda: tf.image.flip_left_right(image),
+        lambda: image,
+    )
+
+
+    if params.angle_noise_std > 0:
+        noise = tf.random_normal([], mean=0.0, stddev=params.angle_noise_std)
+        row["steering"] = tf.cast(row["steering"], tf.float32) + noise
+
+    else:
+        row["steering"] = tf.cast(row["steering"], tf.float32)
+
+    image = (image / 255.0)* 2.0 - 1.0
+
+    row["image"] = image
+
+    return row
+
+def get_crop_window(params):
+
+    final_height = params.image_height - (params.crop_up + params.crop_down)
+    final_width = params.image_width
+
+
+    return [
+        params.crop_up,
+        0,
+        final_height,
+        final_width,
+    ]
+
+if __name__ == "__main__":
+    module_path = os.path.dirname(__file__)
+    configs_path = os.path.join(module_path, "configs", "train.yml")
+    params = do.load(configs_path)
