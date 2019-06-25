@@ -3,6 +3,99 @@ from tensorflow.python import autograph
 
 from .model import pilot_relation_net
 
+def model_fn(features, labels, mode, params):
+
+    images = features["image"]
+
+    predictions = pilot_relation_net(
+        images,
+        mode,
+        params,
+        conv_args=dict(
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(
+                scale=params.l2_regularization
+            )
+        )
+    )
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+
+        return tf.estimator.EstimatorSpec(
+            mode=mode,
+            predictions=predictions,
+            export_outputs=dict(
+                serving_default=tf.estimator.export.PredictOutput(predictions)
+            )
+        )
+
+
+    onehot_labels = get_onehot_labels(features["steering"], params)
+
+
+    tf.losses.softmax_cross_entropy(
+        onehot_labels = onehot_labels,
+        logits = predictions["logits"],
+        label_smoothing = params.label_smoothing,
+        weights = get_weights(features["original_steering"], params)
+    )
+
+    loss = tf.losses.get_total_loss()
+
+    labels = tf.argmax(onehot_labels, axis = 1)
+    labels_pred = tf.argmax(predictions["logits"], axis = 1)
+
+    if mode == tf.estimator.ModeKeys.EVAL:
+
+        accuracy = tf.metrics.accuracy(labels, labels_pred)
+        
+        top_5_accuracy = tf.nn.in_top_k(
+            predictions["logits"],
+            labels,
+            5,
+        )
+        top_5_accuracy = tf.cast(top_5_accuracy, tf.float32)
+        top_5_accuracy = tf.metrics.mean(top_5_accuracy)
+
+        return tf.estimator.EstimatorSpec(
+            mode = mode,
+            predictions = predictions,
+            loss = loss,
+            eval_metric_ops = {
+                "accuracy/top_5": top_5_accuracy,
+                "accuracy/top_1": accuracy,
+            }
+        )
+
+    if mode == tf.estimator.ModeKeys.TRAIN:
+        
+        with tf.name_scope("training"), tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+
+            learning_rate = get_learning_rate(params)
+
+            update = tf.contrib.opt.PowerSignOptimizer(
+                learning_rate
+            ).minimize(
+                loss,
+                global_step=tf.train.get_global_step()
+            ) 
+
+        # summaries
+        accuracy = tf.contrib.metrics.accuracy(labels, labels_pred)
+
+        top_5_accuracy = tf.nn.in_top_k(predictions["logits"], labels, 5)
+        top_5_accuracy = tf.reduce_mean(tf.cast(top_5_accuracy, tf.float32))
+
+        tf.summary.scalar("accuracy/top_1", accuracy)
+        tf.summary.scalar("accuracy/top_5", top_5_accuracy)
+        tf.summary.scalar("learning_rate", learning_rate)
+
+        return tf.estimator.EstimatorSpec(
+            mode=mode,
+            predictions=predictions,
+            loss=loss,
+            train_op=update,
+        )
+        
 def get_weights(steering, params):
 
 
